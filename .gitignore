@@ -1,0 +1,4 @@
+.direnv/
+*.mitm
+token.txt
+__pycache__/
