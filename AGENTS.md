@@ -24,15 +24,24 @@ token helper, and the Home Assistant custom component itself (see Integration).
 
 ## Dev environment
 
-Nix flake + nix-direnv. `direnv allow` (or `nix develop`) enters a shell with
-`mitmproxy`. There is no `python3` on PATH outside the shell — run Python via
-`nix develop --command python ...`.
+Nix flake + nix-direnv. `direnv allow` enters a shell with `mitmproxy`/`python`.
+
+To run Python/mitmproxy from a non-interactive shell (where direnv does **not**
+auto-activate and there's no `python` on PATH), use `direnv exec .`:
+
+```
+direnv exec . python script.py
+```
+
+This reuses nix-direnv's **cached** dev shell (~0.06s). Prefer it over
+`nix develop --command ...`, which re-evaluates the flake every call (slow, and
+noisy with "Git tree is dirty" warnings).
 
 Gotchas:
 - Nix flakes only see **git-tracked** files. `git add` new files before
   `nix develop` / `nix flake lock`, or Nix errors with "not tracked by Git".
-- `nix develop --command` may change cwd — use **absolute paths** when a script
-  opens `android-flows.mitm`.
+- Use **absolute paths** when a script opens `android-flows.mitm` — `nix develop
+  --command` resets cwd to the repo root (`direnv exec .` keeps the current dir).
 
 ## Code style
 
