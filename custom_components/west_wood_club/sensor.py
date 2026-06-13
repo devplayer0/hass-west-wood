@@ -11,7 +11,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import CONF_CLUBS, DOMAIN
+from .const import CONF_CLUBS, DEVICE_NAME, DOMAIN
 from .coordinator import WestWoodConfigEntry, WestWoodCoordinator
 
 
@@ -46,12 +46,14 @@ class WestWoodOccupancySensor(CoordinatorEntity[WestWoodCoordinator], SensorEnti
     ) -> None:
         super().__init__(coordinator)
         self._club_id = club_id
-        self._attr_name = name
+        # has_entity_name prepends the device name, so drop the duplicate prefix
+        # the API includes (e.g. 'West Wood Club Dun Laoghaire' -> 'Dun Laoghaire').
+        self._attr_name = name.removeprefix(f'{DEVICE_NAME} ') or name
         self._attr_unique_id = f'{entry.entry_id}_{club_id}'
         # All club sensors share one device so they group together in the UI.
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, entry.entry_id)},
-            name='West Wood Club',
+            name=DEVICE_NAME,
             manufacturer='PerfectGym',
         )
 

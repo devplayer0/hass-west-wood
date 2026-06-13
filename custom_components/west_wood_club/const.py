@@ -4,6 +4,10 @@ from datetime import timedelta
 
 DOMAIN = 'west_wood_club'
 
+# Shown as the device name; also the prefix the API puts on every club name
+# (e.g. 'West Wood Club Dun Laoghaire'), stripped from per-club entity names.
+DEVICE_NAME = 'West Wood Club'
+
 # PerfectGym Go backend (West Wood is a white-label tenant).
 BASE_URL = 'https://goapi2.perfectgym.com'
 

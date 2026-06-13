@@ -15,7 +15,7 @@
           west_wood_club = final.buildHomeAssistantComponent {
             owner = "deplayer0";
             domain = "west_wood_club";
-            version = "0.1.0";
+            version = "0.1.1";
             src = ./.;
           };
         };
