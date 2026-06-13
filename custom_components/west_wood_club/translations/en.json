@@ -1,0 +1,34 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "West Wood Club",
+        "description": "Paste a bearer token for the West Wood Club app. You can generate one with get-token.py from the repository.",
+        "data": {
+          "token": "Bearer token"
+        }
+      },
+      "clubs": {
+        "title": "Select clubs",
+        "description": "Choose the clubs to create member-count sensors for.",
+        "data": {
+          "clubs": "Clubs"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Re-authenticate West Wood Club",
+        "description": "The stored token was rejected. Paste a fresh bearer token.",
+        "data": {
+          "token": "Bearer token"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "The token was rejected. Generate a new one and try again.",
+      "cannot_connect": "Could not reach the West Wood Club API."
+    },
+    "abort": {
+      "reauth_successful": "Re-authentication was successful."
+    }
+  }
+}

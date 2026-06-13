@@ -1,0 +1,11 @@
+{
+  "domain": "west_wood_club",
+  "name": "West Wood Club",
+  "codeowners": ["@deplayer0"],
+  "config_flow": true,
+  "documentation": "https://git.nul.ie/dev/hass-west-wood",
+  "integration_type": "service",
+  "iot_class": "cloud_polling",
+  "requirements": [],
+  "version": "0.1.0"
+}
