@@ -228,17 +228,19 @@ overrides and was empty in the capture.
 
 `GET /v1/PersonalTrainings/Bookings?timestamp=0`
 
-The account's PT sessions. `Classes/BookingsV2` (same shape, class bookings) was
-empty in the capture. `instructorId` maps to `Instructors/Instructors`;
-`clubId` to the club list.
+The account's own PT sessions — **past and future in one list**, newest-booked
+last. The endpoint does not filter by date; to surface *upcoming* bookings,
+filter client-side on `startDate > now` (and typically `not isCanceled` /
+`not isCompleted`). `Classes/BookingsV2` (same shape, for class bookings) was
+empty in the capture.
 
 ```json
 {
-  "name": "1st Consultation",
-  "startDate": "2026-04-20T08:45:00+01:00",
-  "endDate": "2026-04-20T09:15:00+01:00",
+  "name": "New - 4th Program- Review",
+  "startDate": "2026-05-26T08:30:00+01:00",
+  "endDate": "2026-05-26T09:00:00+01:00",
   "isCanceled": false,
-  "isCompleted": false,
+  "isCompleted": true,
   "instructorId": 0,
   "clubId": 962,
   "personalTrainingTypeId": 0,
@@ -247,6 +249,23 @@ empty in the capture. `instructorId` maps to `Instructors/Instructors`;
   "id": 0
 }
 ```
+
+Fields:
+
+- `name` — already human-readable and self-contained (e.g.
+  `"New - 1st Consultation"`, `"New - 4th Program- Review"`). A "next PT booking"
+  sensor needs **only this endpoint** — the lookups below are enrichment.
+- `startDate` / `endDate` — ISO-8601 **with** offset (`+01:00`); the duration is
+  implied (no separate field on the booking).
+- `isCanceled` / `isCompleted` — booleans. A future session has both `false`.
+- `instructorId` → `Instructors/Instructors`; `personalTrainingTypeId` →
+  `PersonalTrainings/PersonalTrainingsTypes`; `clubId` → the club list. Note the
+  booking's own `name` does **not** match the type's `name`.
+
+**Delta sync:** like other catalogue endpoints, passing the largest `timestamp`
+seen in a previous response (instead of `0`) returns only rows changed since —
+`data: []` when nothing changed. A simple poller can ignore this and always send
+`timestamp=0` to get the full list each time.
 
 ### Membership contract
 
@@ -415,7 +434,10 @@ classes. All empty in capture.
 
 ### Instructors
 
-`GET /v1/Instructors/Instructors?timestamp=0` — instructor directory:
+`GET /v1/Instructors/Instructors?timestamp=0` — instructor directory. Large list
+(hundreds of rows), mostly `isActive: false` and/or `isDeleted: true` legacy
+staff; `position` is a department label (`Swim`, `Tennis`, `Sales`, …). Only
+needed to resolve a booking's `instructorId` to a name.
 
 ```json
 {
@@ -428,7 +450,8 @@ classes. All empty in capture.
   "photoUrl": null,
   "description": null,
   "companyId": 251,
-  "id": 0
+  "id": 0,
+  "isDeleted": false
 }
 ```
 
@@ -437,8 +460,22 @@ classes. All empty in capture.
 capture).
 
 `GET /v1/PersonalTrainings/PersonalTrainingsTypes?timestamp=0` — PT session-type
-catalogue (`name`, `duration`, `productId`). `personalTrainingTypeId` on a PT
-booking points here.
+catalogue; `personalTrainingTypeId` on a PT booking points here. This is where the
+session `duration` lives (the booking itself carries only start/end). `name`
+ranges over paid sessions (`"60 min PT session"`, `"45 min PT session FREE"`),
+consultations/reviews, and non-session blocks (`"Lunch 30 min"`, `"Shower 15
+min"`). Many rows are `isDeleted: true` legacy types.
+
+```json
+{
+  "name": "60 min PT session",
+  "duration": "01:00",
+  "productId": 105674,
+  "companyId": 251,
+  "id": 0,
+  "isDeleted": false
+}
+```
 
 ### Products & pricing
 
