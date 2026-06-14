@@ -11,6 +11,11 @@ DEVICE_NAME = 'West Wood Club'
 # PerfectGym Go backend (West Wood is a white-label tenant).
 BASE_URL = 'https://goapi2.perfectgym.com'
 
+# Hardcoded West Wood white-label tenant ID (baked into the app binary). Sent as
+# the X-Go-White-Label-ID header. The server doesn't require it, but it matches
+# what the app sends. See api.md.
+WHITE_LABEL_ID = '7d073db5-0ef8-4d78-89ec-4a8bebaf4cbc'
+
 # Config entry keys.
 CONF_TOKEN = 'token'
 CONF_CLUBS = 'clubs'

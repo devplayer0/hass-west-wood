@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import aiohttp
 
-from .const import BASE_URL
+from .const import BASE_URL, WHITE_LABEL_ID
 
 
 class WestWoodApiError(Exception):
@@ -36,6 +36,7 @@ class WestWoodClient:
                 headers={
                     'Authorization': f'bearer {self._token}',
                     'Accept': 'application/json',
+                    'X-Go-White-Label-ID': WHITE_LABEL_ID,
                 },
             ) as resp:
                 if resp.status in (401, 403):
