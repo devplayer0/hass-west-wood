@@ -76,8 +76,39 @@ When dumping flows, redact `Authorization` / `Cookie` headers and the login body
 Some questions the capture can't answer (token lifecycle, the white-label ID,
 error codes) need the app itself. If you're pointed at **decompiled APK output**
 (e.g. apktool `smali/`), grep it there — but it's R8-obfuscated: class names are
-mangled and library types (e.g. OkHttp) may be shrunk/repackaged, so a missing
-grep hit is not proof of absence. No such decompilation lives in this repo.
+mangled and library types (e.g. OkHttp, `androidx.security.crypto`) may be
+shrunk/repackaged, so a missing grep hit is not proof of absence. No such
+decompilation lives in this repo (the user can supply a local apktool dump on
+request; app package `com.perfectgym.perfectgymgo2.westwoodclub`). The original
+ELPassion source package names survive obfuscation under
+`smali/com/elpassion/perfectgym/`, which is the useful entry point.
+
+### How the app stores the bearer token
+
+Confirmed from the decompilation (relevant because it answers the token-lifecycle
+question and shows there's no second auth secret to capture):
+
+- The login response DTO (`AccountAuthorizationGoApiDto`) carries `token`,
+  `tokenType`, `authorizationHeader`, and a **nullable `expireTime`**.
+  `DtoMapperKt.asAuthorizeResponse` keeps **only the bare `token`** string;
+  `tokenType`/`authorizationHeader`/`expireTime` are discarded. The app
+  reconstructs `Authorization: bearer <token>` itself per request.
+- The token is **persisted in `EncryptedSharedPreferences`** (androidx
+  security-crypto, R8-repackaged to `l3.*`; AES-256-GCM master key in the Android
+  Keystore). The store class is `f6/o` (interface `f6/p`); the backing file is
+  named `wevgebvre` and values are Moshi-JSON-encoded. Token key: **`"token"`**
+  (writer `f6/o.h(String)`, reader `f6/o.r()`).
+- **Load path:** at DI-graph construction the provider (`androidx/room/v0`) calls
+  `f6/p.r()` and passes the stored token into the `appmodel/s0` AppModel
+  constructor as its initial value, which seeds the reactive `tokenS`
+  (`Optional<String>`) stream — so the app comes up already authenticated.
+  Login writes the new token back via `f6/p.h(...)` (dispatcher `z4/c`).
+- **Legacy + migration:** older builds kept the same `"token"` key in the
+  *plaintext* default `SharedPreferences` (`f6/b0`, via
+  `PreferenceManager.getDefaultSharedPreferences`). `PerfectGymApplication` runs a
+  one-time migration gated by an `isMigrated` flag: copy from `f6/b0` into the
+  encrypted `f6/o`, then `clear()` + `deleteSharedPreferences()` the plaintext
+  file. So the token is no longer recoverable in cleartext on current installs.
 
 ## API essentials
 
@@ -85,9 +116,10 @@ Full detail in `api.md`. Quick reference:
 
 - Responses are wrapped `{ "data": ..., "errors": ... }`; `errors` is `null` on success.
 - **Auth:** `POST /v1/Authorize/LogInWithEmail` (white-label ID goes in the body)
-  → reuse the returned `bearer <token>` as the `Authorization` header. The token
-  most likely doesn't expire (no refresh token in the response, app appears to
-  store no credentials); on `401`/`403` get a fresh one. See `api.md`.
+  → reuse the returned `bearer <token>` as the `Authorization` header. Treat the
+  token as long-lived: there's no refresh token, the app persists only the token
+  (not the email/password) and discards the response's `expireTime`, so refetch
+  reactively on `401`/`403`. See `api.md` and the token-storage notes above.
 - Authenticated endpoints need **only** the `Authorization` header — the `X-Go-*`
   headers and app `User-Agent` the app sends are not required (verified against
   the clubs endpoint).
