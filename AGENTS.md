@@ -49,6 +49,10 @@ Python uses **single-quoted strings** (`'...'`). Reformat with
 `ruff format --config "format.quote-style='single'" <paths>` (ruff is available via
 `nix run nixpkgs#ruff`). Docstrings stay triple-double-quoted (`"""`).
 
+In prose (commit messages, docs, comments), backtick-quote anything code-like —
+paths, filenames, identifiers, commands, endpoints — rather than plain or
+double-quoted text.
+
 ## Working with the capture
 
 Read flows with the mitmproxy Python API:
