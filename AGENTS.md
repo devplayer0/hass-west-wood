@@ -16,6 +16,8 @@ token helper, and the Home Assistant custom component itself (see Integration).
   endpoints are mapped.
 - `get-token.py` — logs in and prints a bearer token to stdout (stdlib only).
 - `custom_components/west_wood_club/` — the Home Assistant integration.
+  Its `brand/` dir holds the integration icon/logo, extracted from the capture's
+  `westwoodclub-ie.png` asset.
 - `android-flows.mitm` — mitmproxy capture of the app's traffic. **Gitignored and
   untracked**: it contains real credentials and a bearer token in cleartext. Never
   commit it or copy its secrets into tracked files.
@@ -50,8 +52,9 @@ Python uses **single-quoted strings** (`'...'`). Reformat with
 `nix run nixpkgs#ruff`). Docstrings stay triple-double-quoted (`"""`).
 
 In prose (commit messages, docs, comments), backtick-quote anything code-like —
-paths, filenames, identifiers, commands, endpoints — rather than plain or
-double-quoted text.
+paths, filenames, identifiers, commands, endpoints, HTTP headers, field/JSON
+keys, UUIDs/IDs, env vars — rather than plain or double-quoted text. If in doubt
+and it's a literal token from code or an API, backtick it.
 
 ## Working with the capture
 
@@ -61,14 +64,20 @@ Read flows with the mitmproxy Python API:
 from mitmproxy.io import FlowReader
 from mitmproxy.http import HTTPFlow
 
-with open("/abs/path/android-flows.mitm", "rb") as f:
+with open('/abs/path/android-flows.mitm', 'rb') as f:
     for flow in FlowReader(f).stream():
-        if isinstance(flow, HTTPFlow) and "perfectgym.com" in flow.request.host:
+        if isinstance(flow, HTTPFlow) and 'perfectgym.com' in flow.request.host:
             ...  # flow.request / flow.response
 ```
 
 When dumping flows, redact `Authorization` / `Cookie` headers and the login body
 (email + password) before writing anything to a tracked file.
+
+Some questions the capture can't answer (token lifecycle, the white-label ID,
+error codes) need the app itself. If you're pointed at **decompiled APK output**
+(e.g. apktool `smali/`), grep it there — but it's R8-obfuscated: class names are
+mangled and library types (e.g. OkHttp) may be shrunk/repackaged, so a missing
+grep hit is not proof of absence. No such decompilation lives in this repo.
 
 ## API essentials
 
@@ -76,8 +85,9 @@ Full detail in `api.md`. Quick reference:
 
 - Responses are wrapped `{ "data": ..., "errors": ... }`; `errors` is `null` on success.
 - **Auth:** `POST /v1/Authorize/LogInWithEmail` (white-label ID goes in the body)
-  → reuse the returned `bearer <token>` as the `Authorization` header. Token
-  expiry is unconfirmed (`expireTime` was `null`).
+  → reuse the returned `bearer <token>` as the `Authorization` header. The token
+  most likely doesn't expire (no refresh token in the response, app appears to
+  store no credentials); on `401`/`403` get a fresh one. See `api.md`.
 - Authenticated endpoints need **only** the `Authorization` header — the `X-Go-*`
   headers and app `User-Agent` the app sends are not required (verified against
   the clubs endpoint).
@@ -106,6 +116,16 @@ Full detail in `api.md`. Quick reference:
   the same Python as the host's `home-assistant`. Bump `version` in both
   `manifest.json` and the flake on code changes. The integration has **no**
   external `requirements`, so no extra Nix packaging is needed.
+
+## Checks
+
+There is no test suite. Verify changes with:
+
+- `direnv exec . python -m py_compile custom_components/west_wood_club/*.py` — fast
+  syntax check of the component.
+- `nix build .#west_wood_club` — builds the component and runs nixpkgs' manifest
+  and import checks (the closest thing to CI here). Remember to `git add` new files
+  first, or the flake won't see them.
 
 ## Security
 
